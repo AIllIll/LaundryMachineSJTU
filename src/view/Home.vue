@@ -3,34 +3,42 @@
     <el-card>
       <div slot="header" class="clearfix">
         <span style="float: left; font-size: 28px;"> {{ currentBuilding }}洗衣机实时状态</span>
-        <el-button type="primary" icon="el-icon-plus" circle style="float: right; margin: 5px;" @click="addBuildingDialogVisible = true"></el-button>
-        <el-select v-model="currentBuilding" style="float: right; padding: 3px 0; width: 200px;" type="text" placeholder="选择楼栋" @change="onSelect" >
-          <el-option
-            v-for="item in buildingList"
-            :key="item.name"
-            :label="item.name"
-            :value="item.name">
-          </el-option>
-        </el-select>
+        <div style="height: 50px; float: right;">
+          <el-select v-model="currentBuilding" style="padding: 3px 0; width: 100px;" type="text" placeholder="选择楼栋" @change="onSelect" >
+            <el-option
+              v-for="item in buildingList"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name">
+            </el-option>
+          </el-select>
+          <el-button type="primary" icon="el-icon-plus" circle style="margin: 5px;" @click="addBuildingDialogVisible = true"></el-button>
+        </div>
       </div>
-      <el-table :data="machineList" v-loading="false"
+      <el-table :data="machineList" v-loading="loading"
                 element-loading-text="拼命加载中(其实并没有很拼命"
                 element-loading-spinner="el-icon-loading"
                 element-loading-background="rgba(0, 0, 0, 0.8)">
-        <el-table-column type="index"/>
-        <el-table-column prop="name" label="楼层"/>
-        <el-table-column prop="code" label="设备编号"/>
-        <el-table-column prop="status" label="状态">
+        <!--<el-table-column type="index"/>-->
+        <el-table-column align="center" prop="name" label="楼层" width="80px"/>
+        <el-table-column align="center" prop="code" label="设备编号"/>
+        <el-table-column align="center" prop="status" label="状态">
           <template slot-scope="scope">
             <div v-if="scope.row.status === 'online' " style="color: green">
-              {{ scope.row.status }}
+<!--              {{ scope.row.status }}-->
+              空闲
             </div>
             <div v-else-if=" scope.row.status === 'offline' " style="color: red">
-              {{ scope.row.status }}
+<!--              {{ scope.row.status }}-->
+              占用or离线
             </div>
             <div v-else style="color: blue">
               检测错误
             </div>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="edit" width="50px"><template slot-scope="scope">
+            <el-button @click="onClickEditMachine(scope.row)" circle type="primary" icon="el-icon-edit"/>
           </template>
         </el-table-column>
       </el-table>
@@ -39,7 +47,7 @@
     <el-dialog
       title="添加洗衣机"
       :visible.sync="addMachineDialogVisible"
-      width="30%">
+      width="350px">
       <span>
         <el-form ref="formOfNewMachine" :model="formOfNewMachine" label-width="80px" :rules="ruleOfMachine">
           <el-form-item label="所属楼栋" prop="building">
@@ -64,7 +72,7 @@
     <el-dialog
       title="添加楼栋"
       :visible.sync="addBuildingDialogVisible"
-      width="30%">
+      width="350px">
       <span>
         <el-form ref="formOfNewBuilding" :model="formOfNewBuilding" label-width="80px" :rules="ruleOfBuilding">
           <el-form-item label="楼栋名称" prop="name">
@@ -146,13 +154,15 @@ export default {
       })
     },
     getMachineListAndCheck (building) {
+      this.loading = true
       axios({
         url: 'http://111.186.2.115:8082/getMachineList?building=' + building
       }).then(res => {
+        this.loading = false
         this.machineList = [...res.data]
         for (let machine of this.machineList) {
           axios({
-            url: 'http://111.186.2.115:8082/check?id='
+            url: 'http://111.186.2.115:8082/check?id=' + machine.code
           }).then(res2 => {
             this.$set(machine, 'status', res2.data.status)
             console.log(this.machineList)
@@ -210,6 +220,10 @@ export default {
           })
         }
       })
+    },
+    onClickEditMachine (row) {
+      this.formOfNewMachine = row
+      this.addMachineDialogVisible = true
     }
   }
 }
