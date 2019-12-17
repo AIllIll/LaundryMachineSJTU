@@ -4,15 +4,22 @@
       <div slot="header" class="clearfix">
         <span style="float: left; font-size: 28px;"> {{ currentBuilding }}洗衣机实时状态</span>
         <div style="height: 50px; float: right;">
-          <el-select v-model="currentBuilding" style="padding: 3px 0; width: 100px;" type="text" placeholder="选择楼栋" @change="onSelect" >
+          (历史访问人数:{{userNumber}})
+        <el-radio-group v-model="currentBuilding" @change="onSelect">
+	    <el-radio-button
+	      v-for="item in buildingList"
+	      :key="item.name"
+	      :label="item.name"/>
+	</el-radio-group>  
+	<!--el-select v-model="currentBuilding" style="padding: 3px 0; width: 100px;" type="text" placeholder="选择楼栋" @change="onSelect" >
             <el-option
               v-for="item in buildingList"
               :key="item.name"
               :label="item.name"
               :value="item.name">
             </el-option>
-          </el-select>
-          <el-button type="primary" icon="el-icon-plus" circle style="margin: 5px;" @click="addBuildingDialogVisible = true"></el-button>
+          </el-select-->
+          <el-button type="primary" icon="el-icon-plus" circle style="margin: 5px;" @click="onClickAddBuilding"></el-button>
         </div>
       </div>
       <el-table :data="machineList" v-loading="loading"
@@ -42,7 +49,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-button style="align-self: center; width: 200px; margin: 10px;" type="primary" @click="addMachineDialogVisible = true">添加洗衣机</el-button>
+      <el-button style="align-self: center; width: 200px; margin: 10px;" type="primary" @click="onClickAddMachine">添加洗衣机</el-button>
+      <div>提供设备编号即可开通检测</div>
     </el-card>
     <el-dialog
       title="添加洗衣机"
@@ -99,6 +107,8 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
+      loading: false,
+      userNumber: 0,
       machineList: [],
       buildingList: [],
       currentBuilding: 'D34',
@@ -139,14 +149,24 @@ export default {
     }
   },
   mounted () {
+    this.getUserNumber()
     this.getBuildingList()
     this.getMachineListAndCheck('D34')
   },
   methods: {
-    getBuildingList () {
+    getUserNumber () {
       axios({
-        url: 'http://111.186.2.115:8082/getBuildingList'
+        url: 'http://111.186.2.115:2334/getUserNumber'
       }).then(res => {
+        this.userNumber = res.data.accessNumber
+      })
+    },
+    getBuildingList () {
+      this.loading = true
+      axios({
+        url: 'http://111.186.2.115:2334/getBuildingList'
+      }).then(res => {
+        this.loading = false
         this.buildingList = res.data
       }).catch(err => {
         this.buildingList = []
@@ -156,16 +176,18 @@ export default {
     getMachineListAndCheck (building) {
       this.loading = true
       axios({
-        url: 'http://111.186.2.115:8082/getMachineList?building=' + building
+        url: 'http://111.186.2.115:2334/getMachineList?building=' + building
       }).then(res => {
         this.loading = false
         this.machineList = [...res.data]
         for (let machine of this.machineList) {
           axios({
-            url: 'http://111.186.2.115:8082/check?id=' + machine.code
+            url: 'http://111.186.2.115:2334/check?id=' + machine.code
           }).then(res2 => {
             this.$set(machine, 'status', res2.data.status)
             console.log(this.machineList)
+          }).catch(err => {
+            console.log(err)
           })
         }
       }).catch(err => {
@@ -181,19 +203,41 @@ export default {
         this.getMachineListAndCheck(item)
       }
     },
+    onClickAddBuilding () {
+      this.addBuildingDialogVisible = true
+      // this.formOfNewBuilding.pwd = 'meiyoumima'
+    },
+    onClickAddMachine () {
+      this.formOfNewMachine.building = this.currentBuilding
+      if (this.currentBuilding === 'D35') {
+        this.formOfNewMachine.pwd = 'meiyoumima'
+      }
+      this.addMachineDialogVisible = true
+    },
     onClickConfirmAddBuilding () {
       this.$refs['formOfNewBuilding'].validate(valid => {
         if (valid) {
           console.log(this.formOfNewBuilding)
           axios({
-            url: 'http://111.186.2.115:8082/addBuilding',
+            url: 'http://111.186.2.115:2334/addBuilding',
             method: 'post',
             data: {...this.formOfNewBuilding}
           }).then(res => {
             this.addBuildingDialogVisible = false
             console.log(res.data)
             if (res.data.Msg === 'success') {
+              this.$notify.success({
+                duration: 0,
+                title: '添加成功',
+                message: '添加成功'
+              })
               this.getBuildingList()
+            } else {
+              this.$notify.error({
+                duration: 0,
+                title: '添加失败',
+                message: res.data.Msg
+              })
             }
           }).catch(err => {
             console.log(err)
@@ -206,7 +250,7 @@ export default {
         if (valid) {
           console.log(this.formOfNewMachine)
           axios({
-            url: 'http://111.186.2.115:8082/addMachine',
+            url: 'http://111.186.2.115:2334/addMachine',
             method: 'post',
             data: {...this.formOfNewMachine}
           }).then(res => {
@@ -214,6 +258,17 @@ export default {
             console.log(res.data)
             if (res.data.Msg === 'success') {
               this.getMachineListAndCheck(this.currentBuilding)
+              this.$notify.success({
+                duration: 0,
+                title: '添加成功',
+                message: '添加成功'
+              })
+            } else {
+              this.$notify.error({
+                duration: 0,
+                title: '添加失败',
+                message: res.data.Msg
+              })
             }
           }).catch(err => {
             console.log(err)
@@ -224,6 +279,14 @@ export default {
     onClickEditMachine (row) {
       this.formOfNewMachine = row
       this.addMachineDialogVisible = true
+    },
+    clearMachineForm () {
+      this.formOfNewMachine = {
+        building: null,
+        name: null,
+        code: null,
+        pwd: null
+      }
     }
   }
 }
