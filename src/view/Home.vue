@@ -9,8 +9,8 @@
           <el-radio-group v-model="currentBuilding" @change="onSelect">
             <el-radio-button
               v-for="item in buildingList"
-              :key="item.name"
-              :label="item.name"
+              :key="item"
+              :label="item"
             />
           </el-radio-group>
         </div>
