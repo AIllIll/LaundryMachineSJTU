@@ -70,8 +70,8 @@ export default {
     getMachineStatus (key) {
       this.loading = true
       axios({
-        // url: `http://111.186.2.105:2334/api/v1/laundry/machine/${key}`
-        url: `http://localhost:2334/api/v1/laundry/machine/${key}`
+        url: `http://111.186.2.105:2334/api/v1/laundry/machine/${key}`
+        // url: `http://localhost:2334/api/v1/laundry/machine/${key}`
       }).then(res => {
         this.machineList = res.data
         this.loading = false
