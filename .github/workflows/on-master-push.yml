@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: test
+    runs-on: mac-mini-1
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js 12.x
