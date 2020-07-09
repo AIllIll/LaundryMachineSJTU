@@ -21,7 +21,7 @@ jobs:
           CI: true
       - name: deploy to mac-mini
         run: |
-          cp -r ~/develop/laundry/dist/ ~/develop/my_nginx/
+          cp -r dist ~/develop/my_nginx/
       - name: notify
         run: |
           curl -X POST -H "Content-Type:application/json" -d '{"title":"laundry pushed to master", "text":"<a href=\"http://111.186.2.105:2333\">http://111.186.2.105:2333</a>，from：${{ github.event.sender.login }}"}' https://open.feishu.cn/open-apis/bot/hook/7f7f56d72e274568b406a07fbb9172ca
